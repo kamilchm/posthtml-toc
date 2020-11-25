@@ -1,5 +1,13 @@
 'use strict'
 
+function hNumber (numbers) {
+  return numbers.reduce((ns, n) => `${ns}${n}.`, '')
+}
+
+function linkableHeader (item) {
+  return [{ tag: 'a', attrs: { href: '#' + item[2] }, content: `${hNumber(item[4])}` }, ` ${item[3]}`]
+}
+
 /**
  * TOC Options
  *
@@ -146,8 +154,8 @@ module.exports = function (options = {}) {
     let prev
     let curr
 
-    function tocItem (level, href, text) {
-      return [level, [], href, text]
+    function tocItem (level, href, text, number) {
+      return [level, [], href, text, number]
     }
 
     function rollUp (list) {
@@ -172,11 +180,14 @@ module.exports = function (options = {}) {
       } = node
 
       if (/^h[2-6]$/.test(tag) && content && attrs && attrs.id) {
-        curr = tocItem(parseInt(tag.slice(1)), attrs.id, content)
+        curr = tocItem(parseInt(tag.slice(1)), attrs.id, content, [])
 
         if (!prev) {
           list[list.length - 1].push(curr)
           prev = curr
+          curr[4].push(1)
+          // node.content = `${hNumber(curr[4])} ${curr[3]}`
+          node.content = linkableHeader(curr)
           return node
         }
 
@@ -186,7 +197,11 @@ module.exports = function (options = {}) {
           } else {
             list[list.length] = [curr]
           }
+          curr[4] = prev[4].slice()
+          curr[4].push(1)
           prev = curr
+          // node.content = `${hNumber(curr[4])} ${curr[3]}`
+          node.content = linkableHeader(curr)
           return node
         }
 
@@ -196,7 +211,11 @@ module.exports = function (options = {}) {
 
         if (curr[0] === prev[0]) {
           list[list.length - 1].push(curr)
+          curr[4] = prev[4].slice(0, prev[4].length - 1)
+          curr[4].push(prev[4][prev[4].length - 1] + 1)
           prev = curr
+          // node.content = `${hNumber(curr[4])} ${curr[3]}`
+          node.content = linkableHeader(curr)
           return node
         }
 
@@ -247,10 +266,11 @@ module.exports = function (options = {}) {
         const children = item[1]
         const href = item[2]
         const text = item[3]
+        const number = hNumber(item[4])
         const li = {
           tag: 'li',
           content: [
-            { tag: 'a', attrs: { href: '#' + href }, content: text }
+            { tag: 'a', attrs: { href: '#' + href }, content: `${number} ${text}` }
           ]
         }
         if (children.length) {
